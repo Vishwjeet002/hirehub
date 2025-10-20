@@ -1,0 +1,78 @@
+/* Contact Page CSS Module */
+.contactContainer {
+  background: rgba(8, 8, 8, 0.9); 
+  padding: 30px 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  width: 400px;
+  text-align: center;
+  color: #f3efef;
+  font-family: Arial, sans-serif;
+}
+
+.contactContainer h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.contactContainer p {
+  font-size: 1rem;
+  margin-bottom: 30px;
+  color: #ccc;
+}
+
+.contactForm {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.contactForm input,
+.contactForm textarea,
+.contactForm button {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.contactForm input:focus,
+.contactForm textarea:focus {
+  outline: none;
+  border-color: #007BFF;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.contactForm button {
+  background-color: #007BFF;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.contactForm button:hover {
+  background-color: #0056b3;
+}
+
+.contactContainer a {
+  display: block;
+  margin-top: 15px;
+  font-size: 0.9rem;
+  color: #007BFF;
+  text-decoration: none;
+}
+
+.contactContainer a:hover {
+  text-decoration: underline;
+}
+
+/* Background applied to page via a wrapper class */
+.pageBackground {
+  background: url('icon5.jpg') no-repeat center center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
