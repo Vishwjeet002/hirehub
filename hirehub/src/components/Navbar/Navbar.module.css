@@ -67,3 +67,110 @@
   margin: 0.5rem 0;
   font-size: 1.1rem;
 }
+
+/* Responsive styles - ONLY ADDING NEW MEDIA QUERIES */
+@media (max-width: 1200px) {
+  .header {
+    padding: 0.5rem 0.5rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .header {
+    padding: 0.5rem 0.5rem;
+  }
+  
+  .navList {
+    gap: 1rem;
+  }
+  
+  .buttons {
+    gap: 0.4rem;
+  }
+  
+  .buttons button {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.5rem 1rem;
+  }
+  
+  .navbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+  
+  .navList {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 0.2px;
+  }
+  
+  .buttons {
+    gap: 0.1rem;
+  }
+  
+  .subtitle {
+    margin-top: 0.1rem;
+  }
+  
+  .subtitle p {
+    font-size: 0.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .header {
+    padding: 0.5rem;
+  }
+  
+  .navbar {
+    flex-direction: row;
+    gap: 0.2rem;
+  }
+  
+  .navList {
+    order: 0;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    justify-content: center;
+  }
+  
+  .buttons {
+    gap: 0.5rem;
+  }
+  
+  .buttons button {
+    padding: 0.5rem 1rem;
+  }
+  
+  .subtitle p {
+    font-size: 0.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .navList {
+    gap: 0.8rem;
+  }
+  
+  .navList li a {
+    font-size: 0.2rem;
+  }
+  
+  .buttons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .buttons button {
+    width: 100%;
+  }
+}

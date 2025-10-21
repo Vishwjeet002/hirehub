@@ -1,78 +1,89 @@
-/* Contact Page CSS Module */
-.contactContainer {
-  background: rgba(8, 8, 8, 0.9); 
-  padding: 30px 40px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  width: 400px;
-  text-align: center;
-  color: #f3efef;
-  font-family: Arial, sans-serif;
+.contactPage {
+  display: flex;
+  height: 100vh; /* Full viewport height */
+  width: 100%;
+  background-color: #f5f7fa;
 }
 
-.contactContainer h1 {
-  font-size: 2rem;
-  margin-bottom: 20px;
+.imageContainer {
+  flex: 1;
+  overflow: hidden;
 }
 
-.contactContainer p {
-  font-size: 1rem;
-  margin-bottom: 30px;
-  color: #ccc;
+.imageContainer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.formContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem;
+  background-color: #ffffff;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.formContainer h1 {
+  font-size: 2.2rem;
+  color: #003f5c;
+  margin-bottom: 1rem;
+}
+
+.formContainer p {
+  color: #555;
+  margin-bottom: 2rem;
+  line-height: 1.6;
 }
 
 .contactForm {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 1rem;
+}
+
+.contactForm label {
+  font-weight: 500;
+  color: #333;
 }
 
 .contactForm input,
-.contactForm textarea,
-.contactForm button {
-  width: 100%;
-  padding: 10px;
-  font-size: 1rem;
+.contactForm textarea {
+  padding: 0.8rem;
+  border-radius: 8px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-.contactForm input:focus,
-.contactForm textarea:focus {
-  outline: none;
-  border-color: #007BFF;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  font-size: 1rem;
 }
 
 .contactForm button {
-  background-color: #007BFF;
-  color: white;
+  padding: 0.9rem;
+  background-color: #003f5c;
+  color: #fff;
   border: none;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background 0.3s ease;
 }
 
 .contactForm button:hover {
-  background-color: #0056b3;
+  background-color: #00bcd4;
 }
 
-.contactContainer a {
-  display: block;
-  margin-top: 15px;
-  font-size: 0.9rem;
-  color: #007BFF;
-  text-decoration: none;
-}
+/* Responsive for mobile */
+@media (max-width: 768px) {
+  .contactPage {
+    flex-direction: column;
+    height: auto;
+  }
 
-.contactContainer a:hover {
-  text-decoration: underline;
-}
+  .imageContainer {
+    height: 200px;
+  }
 
-/* Background applied to page via a wrapper class */
-.pageBackground {
-  background: url('icon5.jpg') no-repeat center center/cover;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+  .formContainer {
+    padding: 2rem;
+  }
 }
