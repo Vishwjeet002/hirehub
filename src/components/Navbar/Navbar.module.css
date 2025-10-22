@@ -1,0 +1,176 @@
+.header {
+  background-color: #fff;
+  padding: 0.5rem 4rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.navList {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navList li a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+}
+
+.navList li a:hover {
+  color: #007BFF;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.buttons button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.buttons button:first-child {
+  background-color: #007BFF;
+  color: white;
+}
+
+.buttons button:last-child {
+  background-color: transparent;
+  border: 1px solid #007BFF;
+  color: #007BFF;
+}
+
+.subtitle {
+  margin-top: 1rem;
+  text-align: center;
+  color: #555;
+}
+
+.subtitle p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+/* Responsive styles - ONLY ADDING NEW MEDIA QUERIES */
+@media (max-width: 1200px) {
+  .header {
+    padding: 0.5rem 0.5rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .header {
+    padding: 0.5rem 0.5rem;
+  }
+  
+  .navList {
+    gap: 1rem;
+  }
+  
+  .buttons {
+    gap: 0.4rem;
+  }
+  
+  .buttons button {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.5rem 1rem;
+  }
+  
+  .navbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+  
+  .navList {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 0.2px;
+  }
+  
+  .buttons {
+    gap: 0.1rem;
+  }
+  
+  .subtitle {
+    margin-top: 0.1rem;
+  }
+  
+  .subtitle p {
+    font-size: 0.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .header {
+    padding: 0.5rem;
+  }
+  
+  .navbar {
+    flex-direction: row;
+    gap: 0.2rem;
+  }
+  
+  .navList {
+    order: 0;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    justify-content: center;
+  }
+  
+  .buttons {
+    gap: 0.5rem;
+  }
+  
+  .buttons button {
+    padding: 0.5rem 1rem;
+  }
+  
+  .subtitle p {
+    font-size: 0.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .navList {
+    gap: 0.8rem;
+  }
+  
+  .navList li a {
+    font-size: 0.rem;
+  }
+  
+  .buttons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .buttons button {
+    width: 100%;
+  }
+}
