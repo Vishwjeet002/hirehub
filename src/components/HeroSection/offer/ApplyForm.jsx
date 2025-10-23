@@ -30,7 +30,7 @@ const ApplyForm = () => {
     data.append("lastName", formData.lastName);
     data.append("email", formData.email);
     data.append("skills", formData.skills);
-    data.append("resume", formData.resume);
+   // data.append("resume", formData.resume);
 
     try {
       const response = await fetch("http://localhost:5000/apply", {
@@ -121,14 +121,14 @@ const ApplyForm = () => {
             style={inputStyle}
           />
 
-          <input
-            type="file"
-            name="resume"
-            accept=".pdf,.doc,.docx"
-            onChange={handleChange}
-            required
-            style={fileInputStyle}
-          />
+         // <input
+         //   type="file"
+           // name="resume"
+           // accept=".pdf,.doc,.docx"
+          //  onChange={handleChange}
+           // required
+           // style={fileInputStyle}
+         // />
 
           <button
             type="submit"
