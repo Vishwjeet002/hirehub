@@ -58,16 +58,16 @@ const pool = mysql.createPool({
 })();
 
 // Serve uploaded resumes
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+//app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Configure File Upload Storage (multer)
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, 'uploads'),
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage });
+//const storage = multer.diskStorage({
+//  destination: path.join(__dirname, 'uploads'),
+ // filename: (req, file, cb) => {
+  //  cb(null, Date.now() + path.extname(file.originalname));
+ // }
+//});
+//const upload = multer({ storage });
 
 // ---------- ROUTES (converted to async/await) ---------- //
 
