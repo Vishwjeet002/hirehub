@@ -33,7 +33,7 @@ const ApplyForm = () => {
    // data.append("resume", formData.resume);
 
     try {
-      const response = await fetch("http://localhost:5000/apply", {
+      const response = await fetch("https://hirehub-2-s0pw.onrender.com/", {
         method: "POST",
         body: data, // FormData handles multipart automatically
       });
