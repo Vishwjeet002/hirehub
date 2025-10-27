@@ -121,14 +121,14 @@ const ApplyForm = () => {
             style={inputStyle}
           />
 
-         // <input
-         //   type="file"
-           // name="resume"
-           // accept=".pdf,.doc,.docx"
-          //  onChange={handleChange}
-           // required
-           // style={fileInputStyle}
-         // />
+          <input
+            type="file"
+            name="resume"
+            accept=".pdf,.doc,.docx"
+            onChange={handleChange}
+            required
+            style={fileInputStyle}
+         />
 
           <button
             type="submit"
