@@ -12,7 +12,7 @@ const Provider = () => {
   // Fetch all jobs
   const fetchJobs = async () => {
     try {
-      const response = await fetch("https://hirehub-2-s0pw.onrender.com/");
+      const response = await fetch("https://hirehub-2-s0pw.onrender.com/jobs");
       const data = await response.json();
       setJobs(data);
     } catch (error) {

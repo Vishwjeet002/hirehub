@@ -11,7 +11,7 @@ const Receiver = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5000/jobs");
+      const response = await fetch("https://hirehub-2-s0pw.onrender.com/jobs");
       const data = await response.json();
       setJobs(data);
     } catch (error) {
