@@ -29,7 +29,7 @@ const Provider = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:5000/jobs", {
+      const response = await fetch("https://hirehub-2-s0pw.onrender.com/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -50,7 +50,7 @@ const Provider = () => {
   // Fetch applicants for specific job
   const viewApplicants = async (jobId) => {
     try {
-      const response = await fetch(`http://localhost:5000/applicants/${jobId}`);
+      const response = await fetch(`https://hirehub-2-s0pw.onrender.com/applicants/${jobId}`);
       const applicants = await response.json();
       const updatedJobs = jobs.map((job) =>
         job.id === jobId ? { ...job, applicants } : job
@@ -235,7 +235,7 @@ const Provider = () => {
                           <p><strong>Email:</strong> {app.email}</p>
                           <p><strong>Skills:</strong> {app.skills}</p>
                           <a
-                            href={`http://localhost:5000${app.resume}`}
+                            href={`https://hirehub-2-s0pw.onrender.com${app.resume}`}
                             target="_blank"
                             rel="noreferrer"
                             style={{ color: "#007bff", fontWeight: "bold" }}
