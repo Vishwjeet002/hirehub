@@ -1,6 +1,6 @@
 import express from "express";
-import cors from "cors";
 import mysql from "mysql2/promise";
+import cors from "cors";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -11,38 +11,30 @@ import fs from "fs";
 dotenv.config();
 const app = express();
 
-/* =============================
-        CORS CONFIG
-=============================*/
+// -----------------------
+// ✅ CORS CONFIG
+// -----------------------
 app.use(
   cors({
     origin: [
-      "https://your-frontend-url.vercel.app", // ✅ <-- Replace with your real frontend
+      "https://hirehub-liard-tau.vercel.app/", // change this!
       "http://localhost:5173"
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    credentials: true
   })
 );
 
-app.options("*", cors()); // ✅ Fixes preflight
-
 app.use(express.json());
 
-/* =============================
-        UPLOAD SETUP
-=============================*/
+// -----------------------
+// ✅ Upload folder setup
+// -----------------------
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
-
 app.use("/uploads", express.static(UPLOAD_DIR));
 
-/* =============================
-        ENV VARIABLES
-=============================*/
 const {
   DB_HOST,
   DB_USER,
@@ -50,14 +42,14 @@ const {
   DB_NAME,
   DB_PORT,
   JWT_SECRET,
-  PORT,
+  PORT
 } = process.env;
 
 const SECRET_KEY = JWT_SECRET || "fallback_secret_key";
 
-/* =============================
-        MYSQL POOL
-=============================*/
+// -----------------------
+// ✅ MySQL Pool (Aiven compatible)
+// -----------------------
 const pool = mysql.createPool({
   host: DB_HOST,
   user: DB_USER,
@@ -67,25 +59,21 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false }  // ⭐ required for Aiven
 });
 
-/* =============================
-        DB CHECK
-=============================*/
+// -----------------------
 (async () => {
   try {
-    const c = await pool.getConnection();
+    const conn = await pool.getConnection();
     console.log("✅ Connected to MySQL");
-    c.release();
+    conn.release();
   } catch (err) {
-    console.error("❌ DB connect error:", err.message);
+    console.error("❌ DB connection failed:", err.message);
   }
 })();
 
-/* =============================
-        FILE STORAGE
-=============================*/
+// -----------------------
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
   filename: (req, file, cb) => {
@@ -94,23 +82,23 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-/* =============================
-        ERROR HELPER
-=============================*/
+// Error helper
 function serverError(res, msg, err) {
   console.error(`❌ ${msg}:`, err.message);
   return res.status(500).json({ error: "Server error" });
 }
 
 /* =============================
-        ROUTES
+         ROUTES
 =============================*/
 
+// ✅ HEALTH CHECK (Render uses this)
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
+// Get Jobs
 app.get("/jobs", async (req, res) => {
   try {
-    const [rows] = await pool.query(`
+    const sql = `
       SELECT id, position, vacancies,
       COALESCE(filled_positions, 0) AS filled_positions,
       (vacancies - COALESCE(filled_positions, 0)) AS remaining_vacancies,
@@ -118,14 +106,15 @@ app.get("/jobs", async (req, res) => {
       created_at
       FROM jobs
       ORDER BY id DESC
-    `);
-
+    `;
+    const [rows] = await pool.query(sql);
     return res.json(rows);
   } catch (err) {
     return serverError(res, "GET /jobs", err);
   }
 });
 
+// Post Job
 app.post("/jobs", async (req, res) => {
   try {
     const { position, vacancies, requirements } = req.body;
@@ -142,6 +131,7 @@ app.post("/jobs", async (req, res) => {
   }
 });
 
+// Apply
 app.post("/apply", upload.single("resume"), async (req, res) => {
   try {
     const { job_id, first_name, last_name, email, skills } = req.body;
@@ -158,11 +148,14 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
         [job_id]
       );
 
-      if (!job.length) return res.status(404).json({ error: "Job not found" });
+      if (!job.length) {
+        return res.status(404).json({ error: "Job not found" });
+      }
 
       const { vacancies, filled_positions } = job[0];
-      if (filled_positions >= vacancies)
+      if (filled_positions >= vacancies) {
         return res.status(400).json({ error: "No vacancies left" });
+      }
 
       await conn.query(
         `INSERT INTO applications(job_id, first_name, last_name, email, skills, resume, created_at)
@@ -177,7 +170,6 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
 
       await conn.commit();
       conn.release();
-
       return res.json({ message: "Application submitted" });
     } catch (txErr) {
       await conn.rollback();
@@ -192,17 +184,19 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
 app.get("/applicants/:jobId", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT first_name, last_name, email, skills, resume
-       FROM applications WHERE job_id = ? ORDER BY id DESC`,
+      `SELECT first_name, last_name, email, skills, resume, created_at
+       FROM applications
+       WHERE job_id = ?
+       ORDER BY id DESC`,
       [req.params.jobId]
     );
-
     return res.json(rows);
   } catch (err) {
     return serverError(res, "GET /applicants", err);
   }
 });
 
+// Register
 app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -213,15 +207,16 @@ app.post("/register", async (req, res) => {
       [username, hash]
     );
 
-    res.json({ message: "User registered" });
+    return res.json({ message: "User registered" });
   } catch (err) {
-    if (err.code === "ER_DUP_ENTRY")
+    if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Username exists" });
-
+    }
     return serverError(res, "POST /register", err);
   }
 });
 
+// Login
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -234,30 +229,22 @@ app.post("/login", async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: "User not found" });
 
     const match = await bcrypt.compare(password, rows[0].password_hash);
-
     if (!match) return res.status(401).json({ error: "Wrong password" });
 
     const token = jwt.sign({ id: rows[0].id }, SECRET_KEY, { expiresIn: "2h" });
-
-    res.json({ message: "Logged in", token });
+    return res.json({ message: "Logged in", token });
   } catch (err) {
     return serverError(res, "POST /login", err);
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("✅ Backend Running!");
+// Root
+app.get("/", (req, res) => res.send("✅ Backend Running!"));
+
+// -----------------------
+// ✅ IMPORTANT FOR RENDER
+// -----------------------
+const serverPort = PORT ? Number(PORT) : 5000;
+app.listen(serverPort, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${serverPort}`);
 });
-
-/* =============================
-        START SERVER (LOCAL)
-=============================*/
-if (process.env.NODE_ENV !== "production") {
-  const serverPort = PORT || 5000;
-  app.listen(serverPort, "0.0.0.0", () => {
-    console.log(`🚀 Server running on ${serverPort}`);
-  });
-}
-
-// ✅ Required For Vercel:
-export default app;
