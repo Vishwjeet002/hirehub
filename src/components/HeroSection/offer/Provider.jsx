@@ -50,7 +50,7 @@ const Provider = () => {
   // Fetch applicants for specific job
   const viewApplicants = async (jobId) => {
     try {
-      const response = await fetch(`https://hirehub-2-s0pw.onrender.com/applicants/:jobId/${jobId}`);
+      const response = await fetch(`https://hirehub-2-s0pw.onrender.com/applicants/${jobId}`);
       const applicants = await response.json();
       const updatedJobs = jobs.map((job) =>
         job.id === jobId ? { ...job, applicants } : job
