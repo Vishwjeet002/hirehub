@@ -1,6 +1,6 @@
 import express from "express";
-import mysql from "mysql2/promise";
 import cors from "cors";
+import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -9,28 +9,40 @@ import path from "path";
 import fs from "fs";
 
 dotenv.config();
-
 const app = express();
 
-// Middleware
+/* =============================
+        CORS CONFIG
+=============================*/
 app.use(
   cors({
-    origin: "*",
-    methods: "GET,POST,PUT,DELETE,OPTIONS",
+    origin: [
+      "https://your-frontend-url.vercel.app", // ✅ <-- Replace with your real frontend
+      "http://localhost:5173"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+
+app.options("*", cors()); // ✅ Fixes preflight
+
 app.use(express.json());
 
-// Ensure uploads folder exists
+/* =============================
+        UPLOAD SETUP
+=============================*/
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  console.log("📁 uploads folder created");
 }
+
 app.use("/uploads", express.static(UPLOAD_DIR));
 
-// Environment variables
+/* =============================
+        ENV VARIABLES
+=============================*/
 const {
   DB_HOST,
   DB_USER,
@@ -43,7 +55,9 @@ const {
 
 const SECRET_KEY = JWT_SECRET || "fallback_secret_key";
 
-// DB pool
+/* =============================
+        MYSQL POOL
+=============================*/
 const pool = mysql.createPool({
   host: DB_HOST,
   user: DB_USER,
@@ -52,21 +66,26 @@ const pool = mysql.createPool({
   port: DB_PORT ? Number(DB_PORT) : 3306,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  ssl: { rejectUnauthorized: false },
 });
 
-// Test DB
+/* =============================
+        DB CHECK
+=============================*/
 (async () => {
   try {
-    const conn = await pool.getConnection();
+    const c = await pool.getConnection();
     console.log("✅ Connected to MySQL");
-    conn.release();
+    c.release();
   } catch (err) {
-    console.error("❌ MySQL test failed:", err.message);
+    console.error("❌ DB connect error:", err.message);
   }
 })();
 
-// Multer Storage
+/* =============================
+        FILE STORAGE
+=============================*/
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
   filename: (req, file, cb) => {
@@ -75,72 +94,60 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Safe Error Response Helper
+/* =============================
+        ERROR HELPER
+=============================*/
 function serverError(res, msg, err) {
   console.error(`❌ ${msg}:`, err.message);
   return res.status(500).json({ error: "Server error" });
 }
 
-/*--------------------------------
+/* =============================
         ROUTES
---------------------------------*/
+=============================*/
 
-// GET ALL JOBS
+app.get("/health", (req, res) => res.status(200).send("OK"));
+
 app.get("/jobs", async (req, res) => {
   try {
-    const sql = `
-      SELECT
-        id,
-        position,
-        vacancies,
-        COALESCE(filled_positions, 0) AS filled_positions,
-        (vacancies - COALESCE(filled_positions, 0)) AS remaining_vacancies,
-        requirements,
-        created_at
+    const [rows] = await pool.query(`
+      SELECT id, position, vacancies,
+      COALESCE(filled_positions, 0) AS filled_positions,
+      (vacancies - COALESCE(filled_positions, 0)) AS remaining_vacancies,
+      requirements,
+      created_at
       FROM jobs
       ORDER BY id DESC
-    `;
-    const [rows] = await pool.query(sql);
+    `);
+
     return res.json(rows);
   } catch (err) {
     return serverError(res, "GET /jobs", err);
   }
 });
 
-// POST CREATE JOB
 app.post("/jobs", async (req, res) => {
   try {
     const { position, vacancies, requirements } = req.body;
 
-    if (!position || vacancies === undefined) {
-      return res.status(400).json({ error: "position and vacancies required" });
-    }
+    await pool.query(
+      `INSERT INTO jobs(position, vacancies, filled_positions, requirements, created_at)
+      VALUES (?, ?, 0, ?, NOW())`,
+      [position, vacancies, requirements]
+    );
 
-    const sql = `
-      INSERT INTO jobs (position, vacancies, filled_positions, requirements)
-      VALUES (?, ?, 0, ?)
-    `;
-    await pool.query(sql, [position, Number(vacancies), requirements]);
     return res.status(201).json({ message: "Job posted successfully" });
   } catch (err) {
     return serverError(res, "POST /jobs", err);
   }
 });
 
-// APPLY Job (with resume upload)
 app.post("/apply", upload.single("resume"), async (req, res) => {
   try {
     const { job_id, first_name, last_name, email, skills } = req.body;
 
-    if (!job_id || !first_name || !last_name || !email) {
-      return res.status(400).json({ error: "Missing fields" });
-    }
+    const resumePath = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
-    if (!req.file) {
-      return res.status(400).json({ error: "Resume required" });
-    }
-
-    const resumePath = `/uploads/${req.file.filename}`;
     const conn = await pool.getConnection();
 
     try {
@@ -151,23 +158,15 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
         [job_id]
       );
 
-      if (!job.length) {
-        await conn.rollback();
-        conn.release();
-        return res.status(404).json({ error: "Job not found" });
-      }
+      if (!job.length) return res.status(404).json({ error: "Job not found" });
 
       const { vacancies, filled_positions } = job[0];
-
-      if (filled_positions >= vacancies) {
-        await conn.rollback();
-        conn.release();
+      if (filled_positions >= vacancies)
         return res.status(400).json({ error: "No vacancies left" });
-      }
 
       await conn.query(
-        `INSERT INTO applications (job_id, first_name, last_name, email, skills, resume, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+        `INSERT INTO applications(job_id, first_name, last_name, email, skills, resume, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
         [job_id, first_name, last_name, email, skills, resumePath]
       );
 
@@ -178,33 +177,25 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
 
       await conn.commit();
       conn.release();
-      return res.json({ message: "Application submitted" });
 
+      return res.json({ message: "Application submitted" });
     } catch (txErr) {
       await conn.rollback();
       conn.release();
       throw txErr;
     }
-
   } catch (err) {
     return serverError(res, "POST /apply", err);
   }
 });
 
-// GET APPLICANTS PER JOB
 app.get("/applicants/:jobId", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT first_name, last_name, email, skills, resume, created_at 
-       FROM applications 
-       WHERE job_id = ? 
-       ORDER BY id DESC`,
+      `SELECT first_name, last_name, email, skills, resume
+       FROM applications WHERE job_id = ? ORDER BY id DESC`,
       [req.params.jobId]
     );
-
-    if (!rows.length) {
-      return res.json({ message: "No applicants yet" });
-    }
 
     return res.json(rows);
   } catch (err) {
@@ -212,28 +203,25 @@ app.get("/applicants/:jobId", async (req, res) => {
   }
 });
 
-// REGISTER
 app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
-
     const hash = await bcrypt.hash(password, 10);
 
     await pool.query(
-      "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+      "INSERT INTO users(username, password_hash, created_at) VALUES(?, ?, NOW())",
       [username, hash]
     );
 
-    return res.json({ message: "User registered" });
+    res.json({ message: "User registered" });
   } catch (err) {
-    if (err.code === "ER_DUP_ENTRY") {
+    if (err.code === "ER_DUP_ENTRY")
       return res.status(409).json({ error: "Username exists" });
-    }
+
     return serverError(res, "POST /register", err);
   }
 });
 
-// LOGIN
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -242,27 +230,34 @@ app.post("/login", async (req, res) => {
       "SELECT id, username, password_hash FROM users WHERE username=?",
       [username]
     );
+
     if (!rows.length) return res.status(404).json({ error: "User not found" });
 
-    const user = rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
+    const match = await bcrypt.compare(password, rows[0].password_hash);
+
     if (!match) return res.status(401).json({ error: "Wrong password" });
 
-    const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign({ id: rows[0].id }, SECRET_KEY, { expiresIn: "2h" });
 
-    return res.json({ message: "Login ok", token });
+    res.json({ message: "Logged in", token });
   } catch (err) {
     return serverError(res, "POST /login", err);
   }
 });
 
-// ROOT
-app.get("/", (req, res) => res.send("✅ Backend Running!"));
+app.get("/", (req, res) => {
+  res.send("✅ Backend Running!");
+});
 
-// Start server
-const serverPort = PORT || 5000;
-app.listen(serverPort, () => console.log(`🚀 Running on ${serverPort}`));
+/* =============================
+        START SERVER (LOCAL)
+=============================*/
+if (process.env.NODE_ENV !== "production") {
+  const serverPort = PORT || 5000;
+  app.listen(serverPort, "0.0.0.0", () => {
+    console.log(`🚀 Server running on ${serverPort}`);
+  });
+}
 
-//correced code came
+// ✅ Required For Vercel:
+export default app;
