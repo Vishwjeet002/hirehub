@@ -11,24 +11,36 @@ import fs from "fs";
 dotenv.config();
 const app = express();
 
-// -----------------------
-// ✅ CORS CONFIG
-// -----------------------
+/* ===========================
+       ✅ CORS CONFIG
+=========================== */
 app.use(
   cors({
-    origin: [
-      "https://hirehub-liard-tau.vercel.app/", // change this!
-      "http://localhost:5173"
-    ],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
+// extra fallback headers (important)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,DELETE,OPTIONS"
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type,Authorization"
+  );
+  next();
+});
+
 app.use(express.json());
 
-// -----------------------
-// ✅ Upload folder setup
-// -----------------------
+/* ===========================
+       ✅ UPLOAD SETUP
+=========================== */
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -47,9 +59,9 @@ const {
 
 const SECRET_KEY = JWT_SECRET || "fallback_secret_key";
 
-// -----------------------
-// ✅ MySQL Pool (Aiven compatible)
-// -----------------------
+/* ===========================
+       ✅ MYSQL POOL
+=========================== */
 const pool = mysql.createPool({
   host: DB_HOST,
   user: DB_USER,
@@ -59,10 +71,12 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: { rejectUnauthorized: false }  // ⭐ required for Aiven
+  ssl: { rejectUnauthorized: false }
 });
 
-// -----------------------
+/* ===========================
+       ✅ TEST CONNECTION
+=========================== */
 (async () => {
   try {
     const conn = await pool.getConnection();
@@ -73,7 +87,9 @@ const pool = mysql.createPool({
   }
 })();
 
-// -----------------------
+/* ===========================
+       ✅ MULTER SETUP
+=========================== */
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
   filename: (req, file, cb) => {
@@ -82,20 +98,19 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Error helper
 function serverError(res, msg, err) {
   console.error(`❌ ${msg}:`, err.message);
   return res.status(500).json({ error: "Server error" });
 }
 
-/* =============================
-         ROUTES
-=============================*/
+/* ===========================
+           ROUTES
+=========================== */
 
-// ✅ HEALTH CHECK (Render uses this)
+// Health Check (Render uses this)
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
-// Get Jobs
+// ✅ GET JOBS
 app.get("/jobs", async (req, res) => {
   try {
     const sql = `
@@ -114,14 +129,14 @@ app.get("/jobs", async (req, res) => {
   }
 });
 
-// Post Job
+// ✅ POST JOB
 app.post("/jobs", async (req, res) => {
   try {
     const { position, vacancies, requirements } = req.body;
 
     await pool.query(
       `INSERT INTO jobs(position, vacancies, filled_positions, requirements, created_at)
-      VALUES (?, ?, 0, ?, NOW())`,
+       VALUES (?, ?, 0, ?, NOW())`,
       [position, vacancies, requirements]
     );
 
@@ -131,7 +146,7 @@ app.post("/jobs", async (req, res) => {
   }
 });
 
-// Apply
+// ✅ APPLY
 app.post("/apply", upload.single("resume"), async (req, res) => {
   try {
     const { job_id, first_name, last_name, email, skills } = req.body;
@@ -142,15 +157,12 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
 
     try {
       await conn.beginTransaction();
-
       const [job] = await conn.query(
         "SELECT vacancies, COALESCE(filled_positions,0) AS filled_positions FROM jobs WHERE id = ? FOR UPDATE",
         [job_id]
       );
 
-      if (!job.length) {
-        return res.status(404).json({ error: "Job not found" });
-      }
+      if (!job.length) return res.status(404).json({ error: "Job not found" });
 
       const { vacancies, filled_positions } = job[0];
       if (filled_positions >= vacancies) {
@@ -159,7 +171,7 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
 
       await conn.query(
         `INSERT INTO applications(job_id, first_name, last_name, email, skills, resume, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+         VALUES (?, ?, ?, ?, ?, ?, NOW())`,
         [job_id, first_name, last_name, email, skills, resumePath]
       );
 
@@ -181,6 +193,7 @@ app.post("/apply", upload.single("resume"), async (req, res) => {
   }
 });
 
+// ✅ GET APPLICANTS
 app.get("/applicants/:jobId", async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -196,7 +209,7 @@ app.get("/applicants/:jobId", async (req, res) => {
   }
 });
 
-// Register
+// ✅ REGISTER
 app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -209,14 +222,14 @@ app.post("/register", async (req, res) => {
 
     return res.json({ message: "User registered" });
   } catch (err) {
-    if (err.code === "ER_DUP_ENTRY") {
+    if (err.code === "ER_DUP_ENTRY")
       return res.status(409).json({ error: "Username exists" });
-    }
+
     return serverError(res, "POST /register", err);
   }
 });
 
-// Login
+// ✅ LOGIN
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -238,12 +251,10 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Root
+// ✅ ROOT
 app.get("/", (req, res) => res.send("✅ Backend Running!"));
 
-// -----------------------
-// ✅ IMPORTANT FOR RENDER
-// -----------------------
+// ✅ RUN SERVER FOR RENDER
 const serverPort = PORT ? Number(PORT) : 5000;
 app.listen(serverPort, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${serverPort}`);
