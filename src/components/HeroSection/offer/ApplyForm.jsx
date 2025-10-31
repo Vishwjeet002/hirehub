@@ -10,43 +10,64 @@ const ApplyForm = () => {
     lastName: "",
     email: "",
     skills: "",
-    resume: null,
   });
+  const [resume, setResume] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: files ? files[0] : value,
+      [name]: value,
     });
+  };
+
+  const handleFileChange = (e) => {
+    setResume(e.target.files[0]);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!resume) {
+      alert("Please upload your resume");
+      return;
+    }
 
-    const data = new FormData();
-    data.append("jobId", jobId);
-    data.append("firstName", formData.firstName);
-    data.append("lastName", formData.lastName);
-    data.append("email", formData.email);
-    data.append("skills", formData.skills);
-   // data.append("resume", formData.resume);
+    setLoading(true);
 
     try {
-      const response = await fetch("https://hirehub-2-s0pw.onrender.com/applicants/:jobId", {
-        method: "POST",
-        body: data, // FormData handles multipart automatically
-      });
+      // Create FormData for file upload
+      const submitData = new FormData();
+      submitData.append("job_id", jobId);
+      submitData.append("first_name", formData.firstName);
+      submitData.append("last_name", formData.lastName);
+      submitData.append("email", formData.email);
+      submitData.append("skills", formData.skills);
+      submitData.append("resume", resume);
+
+      const response = await fetch(
+        `https://hirehub-2-s0pw.onrender.com/apply`,
+        {
+          method: "POST",
+          body: submitData, // Use FormData instead of JSON
+          // Don't set Content-Type header - browser will set it with boundary
+        }
+      );
+
+      const result = await response.json();
 
       if (response.ok) {
-        alert("Application submitted successfully!");
-        navigate("/Receiver"); // Redirect to provider page to see applicants
+        alert("✅ Application submitted successfully!");
+        navigate("/Receiver");
       } else {
-        const err = await response.json();
-        alert(err.error || "Failed to submit application");
+        alert(result?.error || "❌ Failed to submit application");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error submitting application:", err);
+      alert("⚠️ Server error — please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,29 +135,45 @@ const ApplyForm = () => {
           <input
             type="text"
             name="skills"
-            placeholder="Skills"
+            placeholder="Skills (comma separated)"
             value={formData.skills}
             onChange={handleChange}
             required
             style={inputStyle}
           />
 
-          <input
-            type="file"
-            name="resume"
-            accept=".pdf,.doc,.docx"
-            onChange={handleChange}
-            required
-            style={fileInputStyle}
-         />
+          {/* Add file input for resume */}
+          <div style={{ textAlign: "left" }}>
+            <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+              Upload Resume (PDF, DOC, DOCX):
+            </label>
+            <input
+              type="file"
+              name="resume"
+              onChange={handleFileChange}
+              accept=".pdf,.doc,.docx"
+              required
+              style={{
+                ...inputStyle,
+                background: "white",
+                width: "100%",
+                padding: "8px",
+              }}
+            />
+          </div>
 
           <button
             type="submit"
-            style={buttonStyle}
-            onMouseEnter={(e) => (e.target.style.background = "#e6b800")}
-            onMouseLeave={(e) => (e.target.style.background = "#ffcc00")}
+            disabled={loading}
+            style={{
+              ...buttonStyle,
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? "not-allowed" : "pointer"
+            }}
+            onMouseEnter={(e) => !loading && (e.target.style.background = "#e6b800")}
+            onMouseLeave={(e) => !loading && (e.target.style.background = "#ffcc00")}
           >
-            Submit Application
+            {loading ? "Submitting..." : "Submit Application"}
           </button>
         </form>
       </div>
@@ -150,25 +187,21 @@ const inputStyle = {
   border: "none",
   outline: "none",
   fontSize: "15px",
-};
-
-const fileInputStyle = {
-  background: "#fff",
-  padding: "8px",
-  borderRadius: "5px",
-  color: "#000",
+  width: "100%",
+  boxSizing: "border-box",
 };
 
 const buttonStyle = {
   background: "#ffcc00",
   color: "#222",
   border: "none",
-  padding: "10px",
+  padding: "12px",
   borderRadius: "5px",
   fontSize: "16px",
   fontWeight: "bold",
   cursor: "pointer",
   transition: "0.3s",
+  marginTop: "10px",
 };
 
 export default ApplyForm;

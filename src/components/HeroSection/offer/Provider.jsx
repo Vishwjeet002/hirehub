@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import "./Provider.css";
-import ccc from "../../../assets/ccc.jpg"; // Use your actual image file name here
+import ccc from "../../../assets/ccc.jpg"; // Update your image path if needed
+
+const API_URL = "https://hirehub-2-s0pw.onrender.com"; // your backend URL
+
 const Provider = () => {
   const [jobs, setJobs] = useState([]);
   const [formData, setFormData] = useState({
@@ -9,10 +12,11 @@ const Provider = () => {
     requirements: "",
   });
 
-  // Fetch all jobs
+  // ✅ Fetch all jobs
   const fetchJobs = async () => {
     try {
-      const response = await fetch("https://hirehub-2-s0pw.onrender.com/jobs");
+      const response = await fetch(`${API_URL}/jobs`);
+      if (!response.ok) throw new Error("Failed to fetch jobs");
       const data = await response.json();
       setJobs(data);
     } catch (error) {
@@ -20,16 +24,16 @@ const Provider = () => {
     }
   };
 
-  // Handle form input
+  // ✅ Handle form input
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  // Submit new job
+  // ✅ Submit new job
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("https://hirehub-2-s0pw.onrender.com/jobs", {
+      const response = await fetch(`${API_URL}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -47,20 +51,25 @@ const Provider = () => {
     }
   };
 
-  // Fetch applicants for specific job
+  // ✅ Fetch applicants for a specific job
   const viewApplicants = async (jobId) => {
     try {
-      const response = await fetch(`https://hirehub-2-s0pw.onrender.com/applicants/${jobId}`);
+      const response = await fetch(`${API_URL}/applicants/${jobId}`);
+      if (!response.ok) throw new Error("Failed to fetch applicants");
       const applicants = await response.json();
-      const updatedJobs = jobs.map((job) =>
-        job.id === jobId ? { ...job, applicants } : job
+
+      // ✅ Update specific job in jobs list
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === jobId ? { ...job, applicants } : job
+        )
       );
-      setJobs(updatedJobs);
     } catch (error) {
       console.error("Error fetching applicants:", error);
     }
   };
 
+  // ✅ Fetch jobs on load
   useEffect(() => {
     fetchJobs();
   }, []);
@@ -68,7 +77,9 @@ const Provider = () => {
   return (
     <div
       style={{
-        background:ccc,
+        backgroundImage: `url(${ccc})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
         minHeight: "100vh",
         padding: "20px",
         display: "flex",
@@ -86,7 +97,7 @@ const Provider = () => {
           width: "100%",
         }}
       >
-        {/* Post Job Section */}
+        {/* ✅ Post Job Section */}
         <div
           style={{
             background: "rgba(255,255,255,0.9)",
@@ -97,7 +108,7 @@ const Provider = () => {
             textAlign: "center",
           }}
         >
-          <h1 style={{ color: "#333", marginBottom: "15px" }}>Post</h1>
+          <h1 style={{ color: "#333", marginBottom: "15px" }}>Post Job</h1>
           <form onSubmit={handleSubmit}>
             <label style={{ display: "block", textAlign: "left", fontWeight: "bold", marginTop: "10px" }}>
               Event Name:
@@ -171,7 +182,7 @@ const Provider = () => {
           </form>
         </div>
 
-        {/* Job Listings Section */}
+        {/* ✅ Job Listings Section */}
         <div
           style={{
             background: "rgba(255,255,255,0.9)",
@@ -216,11 +227,10 @@ const Provider = () => {
                   View Applicants
                 </button>
 
+                {/* ✅ Show Applicants */}
                 <div style={{ marginTop: "10px" }}>
-                  {job.applicants &&
-                    (job.applicants.message ? (
-                      <p>{job.applicants.message}</p>
-                    ) : (
+                  {job.applicants ? (
+                    job.applicants.length > 0 ? (
                       job.applicants.map((app, i) => (
                         <div
                           key={i}
@@ -235,7 +245,7 @@ const Provider = () => {
                           <p><strong>Email:</strong> {app.email}</p>
                           <p><strong>Skills:</strong> {app.skills}</p>
                           <a
-                            href={`https://hirehub-2-s0pw.onrender.com${app.resume}`}
+                            href={app.resume}
                             target="_blank"
                             rel="noreferrer"
                             style={{ color: "#007bff", fontWeight: "bold" }}
@@ -244,7 +254,10 @@ const Provider = () => {
                           </a>
                         </div>
                       ))
-                    ))}
+                    ) : (
+                      <p>No applicants yet.</p>
+                    )
+                  ) : null}
                 </div>
               </div>
             ))}

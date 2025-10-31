@@ -147,53 +147,24 @@ app.post("/jobs", async (req, res) => {
 });
 
 // ✅ APPLY
-app.post("/apply", upload.single("resume"), async (req, res) => {
+app.post("/apply/:jobId", upload.single("resume"), async (req, res) => {
   try {
-    const { job_id, first_name, last_name, email, skills } = req.body;
+    const { jobId } = req.params; // Get from URL params
+    const { first_name, last_name, email, skills } = req.body;
 
     const resumePath = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-
-    const conn = await pool.getConnection();
-
-    try {
-      await conn.beginTransaction();
-      const [job] = await conn.query(
-        "SELECT vacancies, COALESCE(filled_positions,0) AS filled_positions FROM jobs WHERE id = ? FOR UPDATE",
-        [job_id]
-      );
-
-      if (!job.length) return res.status(404).json({ error: "Job not found" });
-
-      const { vacancies, filled_positions } = job[0];
-      if (filled_positions >= vacancies) {
-        return res.status(400).json({ error: "No vacancies left" });
-      }
-
-      await conn.query(
-        `INSERT INTO applications(job_id, first_name, last_name, email, skills, resume, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-        [job_id, first_name, last_name, email, skills, resumePath]
-      );
-
-      await conn.query(
-        `UPDATE jobs SET filled_positions = filled_positions + 1 WHERE id = ?`,
-        [job_id]
-      );
-
-      await conn.commit();
-      conn.release();
-      return res.json({ message: "Application submitted" });
-    } catch (txErr) {
-      await conn.rollback();
-      conn.release();
-      throw txErr;
-    }
+    
+    // Rest of your code using jobId instead of job_id
+    const [job] = await conn.query(
+      "SELECT vacancies, COALESCE(filled_positions,0) AS filled_positions FROM jobs WHERE id = ? FOR UPDATE",
+      [jobId] // Use jobId here
+    );
+    
+    // ... rest of your code
   } catch (err) {
-    return serverError(res, "POST /apply", err);
+    return serverError(res, "POST /apply/:jobId", err);
   }
-});
-
-// ✅ GET APPLICANTS
+});// ✅ GET APPLICANTS
 app.get("/applicants/:jobId", async (req, res) => {
   try {
     const [rows] = await pool.query(
